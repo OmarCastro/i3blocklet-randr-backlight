@@ -1,0 +1,51 @@
+#!/bin/bash
+# Copyright (C) 2019 Omar Castro <omar.castro.360@gmail.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+DISPLAYINFO=$(xrandr --verbose \
+    | grep -e "^[[:alpha:]]" -e '[[:alpha:]]*Gamma' \
+    | sed ':a;N;$!ba;s/\n\s*Gamma:\s*/\n  Gamma: /g' \
+    | sed -r -e's/disconnected .*/disconnected/' -e 's/([0-9]+x[0-9]+\+[0-9]+\+[0-9]+).* ([0-9]*mm x [0-9]*mm)/\n  \1\n  \2/g' -e 's/Screen [0-9]+:/&\n /g' -e 's/[,]/\n /g'
+)
+
+
+echo "DISPLAYINFO"
+echo "$DISPLAYINFO"
+
+OPTIONS=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./menu-actions  )
+let "WIDTH = $(wc -L <<< "$DISPLAYINFO"$'\n'"$OPTIONS") + 3"
+
+echo "OPTIONS"
+echo "$OPTIONS"
+NIGHT_MODE=$(case "$(awk -F"=" '/AUTO_NIGHT_MODE/ {print $2; exit}' "$( dirname "${BASH_SOURCE[0]}" )"/state.conf)" in
+    ON) echo "automatic";;
+    *) echo "manual";;
+    esac)
+OPTION_CHOSEN=$( echo "$OPTIONS" | rofi \
+    -dmenu \
+    -mesg "$DISPLAYINFO"$'\n\n'"night mode: $NIGHT_MODE"$'\n\n'"Actions:" \
+    -no-fullscreen \
+    -theme "omar-message" \
+    -eh 1 \
+    -hide-scrollbar \
+    -no-fixed-num-lines \
+    -theme-str '#window {anchor:southwest; location:northwest;}' \
+        -m -3 \
+    -width -$WIDTH
+)
+
+( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./menu-actions "$OPTION_CHOSEN" )
+
+

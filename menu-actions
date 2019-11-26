@@ -1,0 +1,162 @@
+#!/bin/bash
+# Copyright (C) 2019 Omar Castro <omar.castro.360@gmail.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+XRANDR=$(which xrandr)
+XRANDR_OUTPUT=$(${XRANDR})
+ACTIVE_OUTPUTS=( $( echo "$XRANDR_OUTPUT" | awk '/[0-9]+x[0-9]+\+[0-9]+\+[0-9]+/{ print $1 }' ) )
+MONITORS=( $( echo "$XRANDR_OUTPUT" | awk '( $2 == "connected" ){ print $1 }' ) )
+ACTIVE_MONITORS=( $( echo "$XRANDR_OUTPUT" | awk '/[0-9]+x[0-9]+\+[0-9]+\+[0-9]+/ && ( $2 == "connected" ){ print $1 }' ) )
+
+
+NUM_MONITORS=${#MONITORS[@]}
+
+TITLES=()
+COMMANDS=()
+
+
+function set_xrandr_only()
+{
+    selected=$1
+	xrandr --output $selected --auto
+    cmd="xrandr"
+    for entry in "${ACTIVE_OUTPUTS[@]}"
+    do
+        if [ $selected != $entry ]; then
+            cmd="$cmd --output $entry --off"
+        fi
+    done
+    $cmd
+}
+
+
+
+declare -i index=0
+TILES[$index]="Cancel"
+COMMANDS[$index]="true"
+index+=1
+
+
+for entry in "${MONITORS[@]}"
+do
+    TILES[$index]="Layout: Only $entry"
+    COMMANDS[$index]="set_xrandr_only $entry"
+    index+=1
+done
+
+##
+# Dual screen options
+##
+for entry_a in "${MONITORS[@]}"
+do
+    for entry_b in "${MONITORS[@]}"
+    do
+        if [ $entry_a != $entry_b ]
+        then
+            TILES[$index]="Layout: Dual Screen $entry_a 🖵 🖵 $entry_b"
+            COMMANDS[$index]="xrandr --output $entry_b --auto --output $entry_a --auto --left-of $entry_b"
+            index+=1
+        fi
+    done
+done
+
+
+##
+# Clone monitors
+##
+for entry_a in $(seq 0 $((${NUM_MONITORS}-1)))
+do
+    for entry_b in $(seq 0 $((${NUM_MONITORS}-1)))
+    do
+        if [ $entry_a != $entry_b ]
+        then
+            TILES[$index]="Layout: Clone Screen ${MONITORS[$entry_a]} & ${MONITORS[$entry_b]} 🖵"
+            COMMANDS[$index]="xrandr --output ${MONITORS[$entry_a]} --auto \
+                              --output ${MONITORS[$entry_b]} --auto --same-as ${MONITORS[$entry_a]}"
+
+            index+=1
+        fi
+    done
+done
+
+
+function gen_xrandr_modes()
+{
+    selected=$1
+
+    cmd="xrandr "
+
+    for entry in "${ACTIVE_MONITORS[@]}"
+    do
+        cmd="$cmd --output $entry --gamma $1 --brightness $2"
+    done
+
+    echo $cmd
+}
+
+function deactivate_auto()
+{
+	sed -i 's/AUTO_NIGHT_MODE=.*$/AUTO_NIGHT_MODE=OFF/' "$( dirname "${BASH_SOURCE[0]}" )/state.conf"
+	$@
+}
+
+function toggle_auto()
+{
+	STATUS="$(awk -F"=" '/AUTO_NIGHT_MODE/ {print $2; exit}' "$( dirname "${BASH_SOURCE[0]}" )"/state.conf)"
+	case $STATUS in
+		"OFF") newStatus="ON";;
+		*) newStatus="OFF";;
+	esac
+	sed -i -e 's/AUTO_NIGHT_MODE=.*$/AUTO_NIGHT_MODE='"$newStatus"'/' "$( dirname "${BASH_SOURCE[0]}" )"/state.conf
+
+}
+
+
+##
+# Set Gamma
+##
+night_xrandr_gamma=${night_gamma:-1.1:0.8:0.7}
+night_xrandr_brightness=${night_brightness:-0.7}
+TILES[$index]="Night mode: ON (Set to manual)"
+COMMANDS[$index]="deactivate_auto $(gen_xrandr_modes $night_xrandr_gamma $night_xrandr_brightness)"
+index+=1
+
+TILES[$index]="Night mode: OFF (Set to manual)"
+COMMANDS[$index]="deactivate_auto $(gen_xrandr_modes 1:1:1 1.0)"
+index+=1
+
+TILES[$index]="Night mode: toggle automatic/manual"
+COMMANDS[$index]="toggle_auto"
+index+=1
+
+
+##
+#  Generate entries, where first is key.
+##
+function gen_entries()
+{
+    for a in $(seq 0 $(( ${#TILES[@]} -1 )))
+    do
+        echo $a ${TILES[a]}
+    done
+}
+
+if ! [[ -z "$1" ]]; then
+	SEL=$(echo "$1" | awk '{print $1}' )
+	$( ${COMMANDS[$SEL]} )
+else
+	gen_entries
+fi
