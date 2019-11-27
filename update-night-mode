@@ -14,6 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+PYTHON_SCRIPTS_PATH="$( dirname "${BASH_SOURCE[0]}" )/python_scripts"
+pyscript(){
+  python3 "$PYTHON_SCRIPTS_PATH/$1.py" "${@:2}"
+}
+
 function set_mode(){
 	XRANDR=$(which xrandr)
 	MONITORS=( $( ${XRANDR} | awk '/[0-9]+x[0-9]+\+[0-9]+\+[0-9]+/ && ( $2 == "connected" ){ print $1 }' ) )
@@ -32,12 +37,14 @@ if [ "$AUTO_NIGHT_MODE" = 'ON' ]; then
 	night_xrandr_gamma=${night_gamma:-1.1:0.8:0.7}
 	night_xrandr_brightness=${night_brightness:-0.7}
 	TIMEZONE=$(timedatectl status | grep "zone" | sed -e 's/^[ ]*Time zone: \(.*\) (.*)$/\1/g')
+	GEOLOCATION_COORDS=$(grep "$TIMEZONE" /usr/share/zoneinfo/zone.tab | awk '{print $2}')
 	TIME=$(printf '%(%H:%M)T\n')
-	case $TIME in
-		19*|2*|01*|02*|03*|04*|05*|06*) set_mode $night_xrandr_gamma $night_xrandr_brightness;;
-		07*|08*|17*|18*) set_mode 1.05:0.875:0.8 0.8;;
-		09*|16*) set_mode 1.0:0.95:0.9 0.9;;
-		10*|11*|12*|13*|14*|15*) set_mode 1:1:1 1.0;;
-	esac
+	VALS=( $( python3 "$( dirname "${BASH_SOURCE[0]}" )/python_scripts/gamma_and_brightness_by_sun_time.py" -c="$GEOLOCATION_COORDS" ) )
+	echo "TIMEZONE: $TIMEZONE"
+	echo "GEOLOCATION_COORDS: $GEOLOCATION_COORDS"
+	echo "TIME: $TIME"
+	echo "GAMMA_VALUES: ${VALS[0]}"
+	echo "VALUES: ${VALS[1]}"
+	set_mode "${VALS[@]}"
 
 fi
