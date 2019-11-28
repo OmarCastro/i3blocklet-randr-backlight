@@ -32,6 +32,7 @@ class GeoLocation:
 
     def format_longitude_decimal(self):
         return self._format_coord_decimal(self.longitude, "E", "W")
+
 class Coordinate:
     def __init__(self, degrees=None, minutes=None, seconds=None, fraction=None, sign="+"):
         if fraction is not None:
@@ -68,7 +69,6 @@ re_coord = r"""
 regex = re.compile(re_coord, flags=re.VERBOSE)
 
 def from_ISO_6709(raw_coords):
-    """ Convert a string of coordinates to a set of DMSDegree and Decimal Altitude """
     match = regex.match(raw_coords).groupdict()
     results = {}
     for key in ('lat', 'lng'):
