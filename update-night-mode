@@ -29,22 +29,26 @@ function set_mode(){
     for entry in "${MONITORS[@]}"; do
         cmd="$cmd --output $entry --gamma $1 --brightness $2"
     done
-    $cmd > /dev/null
+    echo $cmd
 }
 
 . "$( dirname "${BASH_SOURCE[0]}" )"/state.conf
 if [ "$AUTO_NIGHT_MODE" = 'ON' ]; then
-	night_xrandr_gamma=${night_gamma:-1.1:0.8:0.7}
+	night_xrandr_gamma=${night_gamma:-1.1:0.8:0.6}
 	night_xrandr_brightness=${night_brightness:-0.7}
 	TIMEZONE=$(timedatectl status | grep "zone" | sed -e 's/^[ ]*Time zone: \(.*\) (.*)$/\1/g')
 	GEOLOCATION_COORDS=$(grep "$TIMEZONE" /usr/share/zoneinfo/zone.tab | awk '{print $2}')
 	TIME=$(printf '%(%H:%M)T\n')
-	VALS=( $( python3 "$( dirname "${BASH_SOURCE[0]}" )/python_scripts/gamma_and_brightness_by_sun_time.py" -c="$GEOLOCATION_COORDS" ) )
-	echo "TIMEZONE: $TIMEZONE"
-	echo "GEOLOCATION_COORDS: $GEOLOCATION_COORDS"
-	echo "TIME: $TIME"
-	echo "GAMMA_VALUES: ${VALS[0]}"
-	echo "VALUES: ${VALS[1]}"
-	set_mode "${VALS[@]}"
+	VALS=( $( pyscript gamma_and_brightness_by_sun_time -c="$GEOLOCATION_COORDS" -g="$night_xrandr_gamma" -b="$night_xrandr_brightness") )
+	COMMAND="$( set_mode "${VALS[@]}" )"
+	(
+		echo "TIME| $TIME"
+		echo "TIMEZONE| $TIMEZONE"
+		echo "GEOLOCATION COORDS| $GEOLOCATION_COORDS"
+		echo "GAMMA VALUES| ${VALS[0]}"
+		echo "BRIGHTNESS | ${VALS[1]}"
+		echo "COMMAND | $COMMAND"
+	) | column -s'|' -t
+	$COMMAND
 
 fi
