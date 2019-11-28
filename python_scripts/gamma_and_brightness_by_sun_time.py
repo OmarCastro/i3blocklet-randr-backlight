@@ -9,7 +9,7 @@ import datetime
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c','--coordinates', help='GPS coordintes in ISO 6709 format', required=True)
-parser.add_argument('-g','--gamma-night', help='Gamma values on full night mode, format <float>:<float>:<float>, default 1.1:0.8:0.7', default="1.1:0.8:0.7")
+parser.add_argument('-g','--gamma-night', help='Gamma values on full night mode, format <float>:<float>:<float>, default 1:0.8:0.6', default="1:0.8:0.6")
 parser.add_argument('-G','--gamma-day', help='Gamma values on full day mode, format <float>:<float>:<float>, default 1:1:1', default="1:1:1")
 parser.add_argument('-b','--brightness-night',  help='Brightness value on full night mode, default 0.8', default="0.7")
 parser.add_argument('-B','--brightness-day',  help='Brightness value on full day mode, default 1', default="1")
@@ -54,7 +54,7 @@ def calculate_gamma_values(sunriseTime,sunsetTime, now):
             red = calculate_linear(diffTimeSunrise + half_transition_time, night_red, day_red, total_transition_time)
             green = calculate_linear(diffTimeSunrise + half_transition_time, night_green, day_green, total_transition_time)
             blue = calculate_linear(diffTimeSunrise + half_transition_time, night_blue, day_blue, total_transition_time)
-            return "{0}:{1}:{2}".format(red, green, blue)
+            return ":".join([str(round(x,3)) for x in [red, green, blue]])
 
     else:
         if abs(diffTimeSunset) > half_transition_time: 
@@ -63,7 +63,7 @@ def calculate_gamma_values(sunriseTime,sunsetTime, now):
             red = calculate_linear(diffTimeSunset + half_transition_time, day_red, night_red, total_transition_time)
             green = calculate_linear(diffTimeSunset + half_transition_time, day_green, night_green, total_transition_time)
             blue = calculate_linear(diffTimeSunset + half_transition_time, day_blue, night_blue, total_transition_time)
-            return "{0}:{1}:{2}".format(red, green, blue)
+            return ":".join([str(round(x,3)) for x in [red, green, blue]])
 
 def calculate_brightness(sunriseTime,sunsetTime, now):
     brightness_day   = float(args.brightness_day)
@@ -75,12 +75,12 @@ def calculate_brightness(sunriseTime,sunsetTime, now):
         if abs(diffTimeSunrise) > half_transition_time:
             return brightness_day if diffTimeSunrise > 0 else brightness_night
         else:
-            return calculate_linear(diffTimeSunrise + half_transition_time, brightness_night, brightness_day, total_transition_time)
+            return round(calculate_linear(diffTimeSunrise + half_transition_time, brightness_night, brightness_day, total_transition_time), 3)
     else:
         if abs(diffTimeSunset) > half_transition_time: 
             return brightness_night if diffTimeSunset > 0 else brightness_day
         else:
-            return calculate_linear(diffTimeSunset + half_transition_time, brightness_day, brightness_night, total_transition_time)
+            return round(calculate_linear(diffTimeSunset + half_transition_time, brightness_day, brightness_night, total_transition_time), 3)
 
 
 coordinates = from_ISO_6709(args.coordinates)
