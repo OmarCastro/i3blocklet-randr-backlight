@@ -20,32 +20,27 @@ DISPLAYINFO=$(xrandr --verbose \
     | sed -r -e's/disconnected .*/disconnected/' -e 's/([0-9]+x[0-9]+\+[0-9]+\+[0-9]+).* ([0-9]*mm x [0-9]*mm)/\n  \1\n  \2/g' -e 's/Screen [0-9]+:/&\n /g' -e 's/[,]/\n /g'
 )
 
-
-echo "DISPLAYINFO"
-echo "$DISPLAYINFO"
-
 OPTIONS=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./menu-actions  )
-let "WIDTH = $(wc -L <<< "$DISPLAYINFO"$'\n'"$OPTIONS") + 3"
-
-echo "OPTIONS"
-echo "$OPTIONS"
 NIGHT_MODE=$(case "$(awk -F"=" '/AUTO_NIGHT_MODE/ {print $2; exit}' "$( dirname "${BASH_SOURCE[0]}" )"/state.conf)" in
     ON) echo "automatic";;
     *) echo "manual";;
-    esac)
-OPTION_CHOSEN=$( echo "$OPTIONS" | rofi \
-    -dmenu \
-    -mesg "$DISPLAYINFO"$'\n\n'"night mode: $NIGHT_MODE"$'\n\n'"Actions:" \
-    -no-fullscreen \
-    -theme "omar-message" \
-    -eh 1 \
-    -hide-scrollbar \
-    -no-fixed-num-lines \
-    -theme-str '#window {anchor:southwest; location:northwest;}' \
-        -m -3 \
-    -width -$WIDTH
-)
+esac)
 
-( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./menu-actions "$OPTION_CHOSEN" )
+MESSAGE="$DISPLAYINFO"$'\n\n'"night mode: $NIGHT_MODE"$'\n\n'"Actions:"
+WIDTH=$(( $(wc -L <<< "$MESSAGE"$'\n'"$OPTIONS") * 11 / 10 ))
+
+
+ROFI_ARGS=(-dmenu -mesg "$MESSAGE" -eh 1 -width -$WIDTH)
+if ! [[ -z "$rofi_theme" ]]; then
+  ROFI_ARGS+=( -theme "$rofi_theme" )
+fi
+if ! [[ -z "$rofi_window_anchor" ]]; then
+  ROFI_ARGS+=( -m -3 -theme-str '#window {anchor:'"$rofi_window_anchor"';}' )
+fi
+
+
+SELECTED_OPTION="$(rofi "${ROFI_ARGS[@]}" <<< "$OPTIONS" )"   
+
+( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./menu-actions "$SELECTED_OPTION" )
 
 
