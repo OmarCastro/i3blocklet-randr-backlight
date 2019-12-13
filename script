@@ -15,16 +15,33 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-case $BLOCK_BUTTON in
-  1) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-left-click && ./update-night-mode )" > /dev/null ;;
-  4) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-wheel-up )" > /dev/null ;;
-  5) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-wheel-down )" > /dev/null ;;
-  *) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./update-night-mode )" > /dev/null ;;
+
+BRIGHTNESS_FILE="$(ls /sys/class/backlight/*/brightness | head -n 1)"
+
+handle_buttons(){
+	case "$1" in
+		1) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-left-click && ./update-night-mode )" > /dev/null ;;
+		4) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-wheel-up )" > /dev/null ;;
+		5) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-wheel-down )" > /dev/null ;;
+ 		*) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./update-night-mode )" > /dev/null ;;
+  	esac
+}
+
+printBlock(){
+	BRIGHTNESS="$(cat $BRIGHTNESS_FILE)"
+	MAX_BRIGHTNESS="$(cat $(ls /sys/class/backlight/*/max_brightness | head -n 1))"
+	let "RESULT =  $BRIGHTNESS * 100 / $MAX_BRIGHTNESS"
+	echo "$RESULT"
+}
+
+case "$interval" in
+	-3|persist )
+		printBlock
+		inotifywait -m -e close_write "$BRIGHTNESS_FILE" | while read; do printBlock; done &
+		while read button; do handle_buttons $button; done
+		;;
+	* )
+		handle_buttons $BLOCK_BUTTON
+		printBlock
 esac
 
-BRIGHTNESS="$(cat $(ls /sys/class/backlight/*/brightness | head -n 1))"
-MAX_BRIGHTNESS="$(cat $(ls /sys/class/backlight/*/max_brightness | head -n 1))"
-
-let "RESULT =  $BRIGHTNESS * 100 / $MAX_BRIGHTNESS"
-echo "$RESULT"
-echo "$RESULT"
