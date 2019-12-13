@@ -27,7 +27,7 @@ function set_mode(){
     $cmd
 }
 
-case `./night-mode` in
+case `./night-mode-config` in
 	on|auto|suntime )
 		night_xrandr_gamma=${night_gamma:-1.1:0.8:0.6}
 		night_xrandr_brightness=${night_brightness:-0.7}
