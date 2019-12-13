@@ -25,10 +25,12 @@ DISPLAYINFO=$(xrandr --verbose \
 )
 
 OPTIONS=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./menu-actions  )
-NIGHT_MODE=$(case "$(awk -F"=" '/AUTO_NIGHT_MODE/ {print $2; exit}' "$( dirname "${BASH_SOURCE[0]}" )"/state.conf)" in
-    ON) echo "automatic";;
-    *) echo "manual";;
-esac)
+
+NIGHT_MODE="$(case `./night-mode-config` in
+    on|auto|suntime ) echo "automatic";;
+    manual ) echo "on (manual)";;
+    off ) echo "off (manual)";;
+esac)"
 
 MESSAGE="$DISPLAYINFO"$'\n\n'"night mode: $NIGHT_MODE"$'\n\n'"Actions:"
 WIDTH=$(( $(wc -L <<< "$MESSAGE"$'\n'"$OPTIONS") * 11 / 10 ))

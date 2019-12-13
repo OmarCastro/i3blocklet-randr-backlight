@@ -67,8 +67,8 @@ done
 ##
 night_xrandr_gamma=${night_gamma:-1.1:0.8:0.7}
 night_xrandr_brightness=${night_brightness:-0.7}
-addCommand "Night mode: ON (Set to manual)" "deactivate_auto set_gamma_brightness $night_xrandr_gamma $night_xrandr_brightness"
-addCommand "Night mode: OFF (Set to manual)" "deactivate_auto set_gamma_brightness 1:1:1 1.0"
+addCommand "Night mode: ON (Set to manual)" "night_manual_on"
+addCommand "Night mode: OFF (Set to manual)" "night_manual_off"
 addCommand "Night mode: toggle automatic/manual" "toggle_auto"
 
 
@@ -105,21 +105,24 @@ function set_gamma_brightness()
     echo $cmd
 }
 
-function deactivate_auto()
+function night_manual_on()
 {
-    sed -i 's/AUTO_NIGHT_MODE=.*$/AUTO_NIGHT_MODE=OFF/' "$( dirname "${BASH_SOURCE[0]}" )/state.conf"
-    $@
+    ./night-mode-config set "manual"
+    set_gamma_brightness $night_xrandr_gamma $night_xrandr_brightness
+}
+
+function night_manual_off()
+{
+    ./night-mode-config set "off"
+    set_gamma_brightness 1:1:1 1.0
 }
 
 function toggle_auto()
 {
-    STATUS="$(awk -F"=" '/AUTO_NIGHT_MODE/ {print $2; exit}' "$( dirname "${BASH_SOURCE[0]}" )"/state.conf)"
-    case $STATUS in
-        "OFF") newStatus="ON";;
-        *) newStatus="OFF";;
+    case `./night-mode-config` in
+        "auto") ./night-mode-config set "manual";;
+        *) ./night-mode-config set "auto";;
     esac
-    sed -i -e 's/AUTO_NIGHT_MODE=.*$/AUTO_NIGHT_MODE='"$newStatus"'/' "$( dirname "${BASH_SOURCE[0]}" )"/state.conf
-
 }
 
 

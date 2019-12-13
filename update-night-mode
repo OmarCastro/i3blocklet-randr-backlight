@@ -27,13 +27,14 @@ function set_mode(){
     $cmd
 }
 
-. "$( dirname "${BASH_SOURCE[0]}" )"/state.conf
-if [ "$AUTO_NIGHT_MODE" = 'ON' ]; then
-	night_xrandr_gamma=${night_gamma:-1.1:0.8:0.6}
-	night_xrandr_brightness=${night_brightness:-0.7}
-	TIMEZONE=$(timedatectl status | grep "zone" | sed -e 's/^[ ]*Time zone: \(.*\) (.*)$/\1/g')
-	GEOLOCATION_COORDS=$(grep "$TIMEZONE" /usr/share/zoneinfo/zone.tab | awk '{print $2}')
-	TIME=$(printf '%(%H:%M)T\n')
-	VALS=( $( python_scripts/gamma_and_brightness_by_sun_time -c="$GEOLOCATION_COORDS" -g="$night_xrandr_gamma" -b="$night_xrandr_brightness") )
-	set_mode "${VALS[@]}"
-fi
+case `./night-mode` in
+	on|auto|suntime )
+		night_xrandr_gamma=${night_gamma:-1.1:0.8:0.6}
+		night_xrandr_brightness=${night_brightness:-0.7}
+		TIMEZONE=$(timedatectl status | grep "zone" | sed -e 's/^[ ]*Time zone: \(.*\) (.*)$/\1/g')
+		GEOLOCATION_COORDS=$(grep "$TIMEZONE" /usr/share/zoneinfo/zone.tab | awk '{print $2}')
+		TIME=$(printf '%(%H:%M)T\n')
+		VALS=( $( python_scripts/gamma_and_brightness_by_sun_time -c="$GEOLOCATION_COORDS" -g="$night_xrandr_gamma" -b="$night_xrandr_brightness") )
+		set_mode "${VALS[@]}"
+	;;
+esac
