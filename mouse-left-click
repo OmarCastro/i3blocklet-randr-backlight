@@ -15,9 +15,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 DISPLAYINFO=$(xrandr --verbose \
-    | grep -e "^[[:alpha:]]" -e '[[:alpha:]]*Gamma' \
-    | sed ':a;N;$!ba;s/\n\s*Gamma:\s*/\n  Gamma: /g' \
-    | sed -r -e's/disconnected .*/disconnected/' -e 's/([0-9]+x[0-9]+\+[0-9]+\+[0-9]+).* ([0-9]*mm x [0-9]*mm)/\n  \1\n  \2/g' -e 's/Screen [0-9]+:/&\n /g' -e 's/[,]/\n /g'
+    | grep -e "^[[:alpha:]]" -e '[[:alpha:]]*Gamma' -e '[[:alpha:]]*Brightness' \
+    | grep -v "^Screen [0-9]" \
+    | sed 's/^\s\s*/  /g' \
+	| sed ':a;N;$!ba;s/\n  Brightness/|  Brightness/g' \
+    | sed -r -e's/disconnected .*/disconnected/' -e 's/([0-9]+x[0-9]+\+[0-9]+\+[0-9]+).* ([0-9]*mm x [0-9]*mm)/\n  Resolution: \1|  Dimension:  \2/g' \
+    | column -s"|" -t
+
 )
 
 OPTIONS=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./menu-actions  )
