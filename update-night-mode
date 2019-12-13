@@ -26,15 +26,51 @@ function set_mode(){
     done
     $cmd
 }
+function update_night_mode(){
+	case `./night-mode-config` in
+		on|auto|suntime )
+			night_xrandr_gamma=${night_gamma:-1.1:0.8:0.6}
+			night_xrandr_brightness=${night_brightness:-0.7}
+			TIMEZONE=$(timedatectl status | grep "zone" | sed -e 's/^[ ]*Time zone: \(.*\) (.*)$/\1/g')
+			GEOLOCATION_COORDS=$(grep "$TIMEZONE" /usr/share/zoneinfo/zone.tab | awk '{print $2}')
+			TIME=$(printf '%(%H:%M)T\n')
+			VALS=( $( python_scripts/gamma_and_brightness_by_sun_time -c="$GEOLOCATION_COORDS" -g="$night_xrandr_gamma" -b="$night_xrandr_brightness") )
+			set_mode "${VALS[@]}"
+		;;
+		manual )
+			night_xrandr_gamma=${night_gamma:-1.1:0.8:0.7}
+			night_xrandr_brightness=${night_brightness:-0.7}
+			set_mode "$night_xrandr_gamma" "$night_xrandr_brightness"
+		;;
+		* )
+			set_mode "1:1:1" "1.0"
+	esac
+}
 
-case `./night-mode-config` in
-	on|auto|suntime )
-		night_xrandr_gamma=${night_gamma:-1.1:0.8:0.6}
-		night_xrandr_brightness=${night_brightness:-0.7}
-		TIMEZONE=$(timedatectl status | grep "zone" | sed -e 's/^[ ]*Time zone: \(.*\) (.*)$/\1/g')
-		GEOLOCATION_COORDS=$(grep "$TIMEZONE" /usr/share/zoneinfo/zone.tab | awk '{print $2}')
-		TIME=$(printf '%(%H:%M)T\n')
-		VALS=( $( python_scripts/gamma_and_brightness_by_sun_time -c="$GEOLOCATION_COORDS" -g="$night_xrandr_gamma" -b="$night_xrandr_brightness") )
-		set_mode "${VALS[@]}"
-	;;
+function run_daemon(){
+	PID="$1"
+	LOCK_FILE="$2"
+	mkdir -p "$(dirname $LOCK_FILE)"
+	echo "$PID" > $LOCK_FILE
+	trap "rm -f $LOCK_FILE" EXIT
+	while true; do
+		inotifywait -e close_write "$(./night-mode-config get-config-file)"
+		update_night_mode
+	done
+}
+
+
+case "$interval" in
+	-3|persist )
+			# basic locking mechanism
+			LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/i3blocklet-randr-backlight/run.pid"
+			if [ -f "$LOCK_FILE" ]; then
+				kill -0 $(cat $LOCK_FILE) && exit
+			fi
+			run_daemon $$ "$LOCK_FILE" 
+		;;
+	* )
+		handle_buttons $BLOCK_BUTTON
+		printBlock
 esac
+

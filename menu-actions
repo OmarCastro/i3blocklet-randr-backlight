@@ -65,8 +65,6 @@ done
 ##
 # Night mode
 ##
-night_xrandr_gamma=${night_gamma:-1.1:0.8:0.7}
-night_xrandr_brightness=${night_brightness:-0.7}
 addCommand "Night mode: ON (Set to manual)" "night_manual_on"
 addCommand "Night mode: OFF (Set to manual)" "night_manual_off"
 addCommand "Night mode: toggle automatic/manual" "toggle_auto"
@@ -95,32 +93,20 @@ function set_xrandr_only()
     $cmd
 }
 
-
-function set_gamma_brightness()
-{
-    cmd="xrandr "
-    for entry in "${ACTIVE_MONITORS[@]}"; do
-        cmd="$cmd --output $entry --gamma $1 --brightness $2"
-    done
-    echo $cmd
-}
-
 function night_manual_on()
 {
     ./night-mode-config set "manual"
-    set_gamma_brightness $night_xrandr_gamma $night_xrandr_brightness
 }
 
 function night_manual_off()
 {
     ./night-mode-config set "off"
-    set_gamma_brightness 1:1:1 1.0
 }
 
 function toggle_auto()
 {
     case `./night-mode-config` in
-        "auto") ./night-mode-config set "manual";;
+        on|auto|suntime) ./night-mode-config set "manual";;
         *) ./night-mode-config set "auto";;
     esac
 }

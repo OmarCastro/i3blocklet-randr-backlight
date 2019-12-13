@@ -37,7 +37,8 @@ printBlock(){
 case "$interval" in
 	-3|persist )
 		printBlock
-		inotifywait -m -e close_write "$BRIGHTNESS_FILE" | while read; do printBlock; done &
+		( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./update-night-mode ) > /dev/null &
+		while inotifywait -e close_write "$BRIGHTNESS_FILE" > /dev/null; do printBlock; done &
 		while read button; do handle_buttons $button; done
 		;;
 	* )

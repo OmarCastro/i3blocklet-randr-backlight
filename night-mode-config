@@ -26,5 +26,6 @@ case "$1" in
 			on|auto|sunset|off|manual ) echo "$2" > $CONFIG_DIR/night_mode;;
 			*) echo "error: invalid value use on of the following: on,auto,sunset,off,manual"
 		esac;;
+	get-config-file ) echo "$CONFIG_DIR/night_mode" ;;
 	*) cat $CONFIG_DIR/night_mode
 esac	
