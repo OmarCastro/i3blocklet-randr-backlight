@@ -27,10 +27,10 @@ function set_mode(){
     $cmd
 }
 function update_night_mode(){
+	night_xrandr_gamma=${night_gamma:-1.1:0.8:0.6}
+	night_xrandr_brightness=${night_brightness:-0.7}
 	case `./night-mode-config` in
 		on|auto|suntime )
-			night_xrandr_gamma=${night_gamma:-1.1:0.8:0.6}
-			night_xrandr_brightness=${night_brightness:-0.7}
 			TIMEZONE=$(timedatectl status | grep "zone" | sed -e 's/^[ ]*Time zone: \(.*\) (.*)$/\1/g')
 			GEOLOCATION_COORDS=$(grep "$TIMEZONE" /usr/share/zoneinfo/zone.tab | awk '{print $2}')
 			TIME=$(printf '%(%H:%M)T\n')
@@ -38,8 +38,6 @@ function update_night_mode(){
 			set_mode "${VALS[@]}"
 		;;
 		manual )
-			night_xrandr_gamma=${night_gamma:-1.1:0.8:0.7}
-			night_xrandr_brightness=${night_brightness:-0.7}
 			set_mode "$night_xrandr_gamma" "$night_xrandr_brightness"
 		;;
 		* )
@@ -54,11 +52,10 @@ function run_daemon(){
 	echo "$PID" > $LOCK_FILE
 	trap "rm -f $LOCK_FILE" EXIT
 	while true; do
-		inotifywait -e close_write "$(./night-mode-config get-config-file)"
 		update_night_mode
+		inotifywait -e close_write -t 60 "$(./night-mode-config get-config-file)"
 	done
 }
-
 
 case "$interval" in
 	-3|persist )
