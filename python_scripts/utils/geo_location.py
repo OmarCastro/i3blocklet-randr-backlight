@@ -12,8 +12,8 @@ class GeoLocation:
     def _format_coord_iso(self, coord, positive_sign,negative_sign):
         sign = negative_sign if coord.decimal < 0 else positive_sign
         degrees = "" if coord.degrees is None else '{0}º'.format(int(coord.degrees))
-        minutes = "" if coord.minutes is 0 else '{0:02d}′'.format(int(coord.minutes))
-        seconds = ""if coord.seconds is 0 else '{0:02d}″'.format(int(coord.seconds))
+        minutes = "" if coord.minutes == 0 else '{0:02d}′'.format(int(coord.minutes))
+        seconds = "" if coord.seconds == 0 else '{0:02d}″'.format(int(coord.seconds))
         return degrees+minutes+seconds+sign
 
     def _format_coord_decimal(self, coord, positive_sign,negative_sign):
