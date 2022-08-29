@@ -31,7 +31,7 @@ function update_night_mode(){
 	night_xrandr_brightness=${night_brightness:-0.7}
 	case `./night-mode-config` in
 		on|auto|suntime )
-			TIMEZONE=$(timedatectl status | grep "zone" | sed -e 's/^[ ]*Time zone: \(.*\) (.*)$/\1/g')
+			TIMEZONE=$(timedatectl status | grep "zone" | sed -e 's/^[ ]*Time zone: \(.*\) (.*)[ ]*/\1/g')
 			GEOLOCATION_COORDS=$(grep "$TIMEZONE" /usr/share/zoneinfo/zone.tab | awk '{print $2}')
 			TIME=$(printf '%(%H:%M)T\n')
 			VALS=( $( python_scripts/gamma_and_brightness_by_sun_time -c="$GEOLOCATION_COORDS" -g="$night_xrandr_gamma" -b="$night_xrandr_brightness") )
@@ -67,7 +67,6 @@ case "$interval" in
 			run_daemon $$ "$LOCK_FILE" 
 		;;
 	* )
-		handle_buttons $BLOCK_BUTTON
-		printBlock
+		update_night_mode
 esac
 
