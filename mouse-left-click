@@ -20,6 +20,7 @@ DISPLAYINFO=$(xrandr --verbose \
     | sed 's/^\s\s*/  /g' \
 	| sed ':a;N;$!ba;s/\n  Brightness/|  Brightness/g' \
     | sed -r -e's/disconnected .*/disconnected/' -e 's/\([^\)]*\)//' -e 's/([0-9]+x[0-9]+\+[0-9]+\+[0-9]+).* ([0-9]*mm x [0-9]*mm)/\n  Resolution: \1|  Dimension:  \2/g' \
+    | awk '/Dimension:/{print $0 " ("int(sqrt($4*$4+$6*$6)*0.0393701*10 + 0.5)/10"\")"} !/Dimension:/{print $0}' \
     | column -s"|" -t
 
 )
