@@ -37,12 +37,12 @@ MESSAGE="$DISPLAYINFO"$'\n\n'"night mode: $NIGHT_MODE"$'\n\n'"Actions:"
 WIDTH=$(( $(wc -L <<< "$MESSAGE"$'\n'"$OPTIONS") * 11 / 10 ))
 
 
-ROFI_ARGS=(-dmenu -mesg "$MESSAGE" -eh 1 -width -$WIDTH)
 if ! [[ -z "$rofi_theme" ]]; then
   ROFI_ARGS+=( -theme "$rofi_theme" )
 fi
+ROFI_ARGS=(-dmenu -mesg "$MESSAGE" -eh 1)
 if ! [[ -z "$rofi_window_anchor" ]]; then
-  ROFI_ARGS+=( -m -3 -theme-str '#window {anchor:'"$rofi_window_anchor"';}' )
+  ROFI_ARGS+=( -m -3 -theme-str '#window {anchor:'"$rofi_window_anchor"'; width: '"$WIDTH"'ch; }' )
 fi
 
 
