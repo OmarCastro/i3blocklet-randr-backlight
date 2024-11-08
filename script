@@ -14,31 +14,48 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
-BRIGHTNESS_FILE="$(ls /sys/class/backlight/*/brightness | head -n 1)"
+if find "/sys/class/backlight" -maxdepth 0 -empty | read; then
+  HAS_SOFTWARE_BRIGHTNESS_CONTROL=false
+else
+  HAS_SOFTWARE_BRIGHTNESS_CONTROL=true
+  BRIGHTNESS_FILE="$(ls /sys/class/backlight/*/brightness | head -n 1)"
+fi
 
 handle_buttons(){
-	case "$1" in
-		1) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-left-click && ./update-night-mode )" > /dev/null ;;
-		4) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-wheel-up )" > /dev/null ;;
-		5) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-wheel-down )" > /dev/null ;;
- 		*) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./update-night-mode )" > /dev/null ;;
-  	esac
+	if  [ "$HAS_SOFTWARE_BRIGHTNESS_CONTROL" = true ]; then
+		case "$1" in
+			1) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-left-click && ./update-night-mode )" > /dev/null ;;
+			4) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-wheel-up )" > /dev/null ;;
+			5) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-wheel-down )" > /dev/null ;;
+			*) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./update-night-mode )" > /dev/null ;;
+		esac
+	else
+		case "$1" in
+			1) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./mouse-left-click && ./update-night-mode )" > /dev/null ;;
+			*) "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./update-night-mode )" > /dev/null ;;
+		esac
+	fi
+	
 }
 
 printBlock(){
-	BRIGHTNESS="$(cat $BRIGHTNESS_FILE)"
-	MAX_BRIGHTNESS="$(cat $(ls /sys/class/backlight/*/max_brightness | head -n 1))"
-	let "RESULT =  $BRIGHTNESS * 100 / $MAX_BRIGHTNESS"
-	echo "$RESULT"
+	if  [ "$HAS_SOFTWARE_BRIGHTNESS_CONTROL" = true ]; then
+		BRIGHTNESS="$(cat $BRIGHTNESS_FILE)"
+		MAX_BRIGHTNESS="$(cat $(ls /sys/class/backlight/*/max_brightness | head -n 1))"
+		let "RESULT =  $BRIGHTNESS * 100 / $MAX_BRIGHTNESS"
+		echo "$RESULT"
+	else
+		echo "N/A"
+	fi
 }
 
 case "$interval" in
 	-3|persist )
 		printBlock
 		( cd "$( dirname "${BASH_SOURCE[0]}" )" && ./update-night-mode ) > /dev/null &
-		while inotifywait -e close_write "$BRIGHTNESS_FILE" > /dev/null; do printBlock; done &
+		if  [ "$HAS_SOFTWARE_BRIGHTNESS_CONTROL" = true ]; then
+			while inotifywait -e close_write "$BRIGHTNESS_FILE" > /dev/null; do printBlock; done &
+		fi
 		while read button; do handle_buttons $button; done
 		;;
 	* )
